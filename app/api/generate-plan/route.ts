@@ -1,0 +1,77 @@
+import { GoogleGenAI } from "@google/genai";
+import { NextResponse } from "next/server";
+
+type MealPlanRequest = {
+  goals: string;
+  allergies?: string[];
+  preferences?: string[];
+};
+
+export async function POST(req: Request) {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY belum diset di environment variables." },
+        { status: 500 }
+      );
+    }
+
+    const body = (await req.json()) as MealPlanRequest;
+    const { goals, allergies = [], preferences = [] } = body;
+
+    if (!goals?.trim()) {
+      return NextResponse.json(
+        { error: "Field 'goals' wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
+    // promt
+    const prompt = `
+Buat meal plan 7 hari berdasarkan data berikut:
+- Goal: ${goals}
+- Allergies: ${allergies.join(", ") || "Tidak ada"}
+- Preferences: ${preferences.join(", ") || "Tidak ada"}
+
+Kembalikan HANYA JSON valid dengan struktur:
+{
+  "days": [
+    {
+      "day": "Day 1",
+      "meals": {
+        "breakfast": { "name": "", "calories": 0, "protein": 0, "carbs": 0, "fats": 0 },
+        "lunch": { "name": "", "calories": 0, "protein": 0, "carbs": 0, "fats": 0 },
+        "dinner": { "name": "", "calories": 0, "protein": 0, "carbs": 0, "fats": 0 },
+        "snacks": [{ "name": "", "calories": 0, "protein": 0, "carbs": 0, "fats": 0 }]
+      }
+    }
+  ],
+  "groceryList": [
+    { "category": "Protein", "items": ["item 1", "item 2"] }
+  ],
+  "nutritionSummary": { "calories": 0, "protein": 0, "carbs": 0, "fats": 0 }
+}
+`.trim();
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: "application/json" },
+    });
+
+    const text = response.text;
+    if (!text) {
+      return NextResponse.json(
+        { error: "AI tidak mengembalikan konten." },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json(JSON.parse(text));
+  } catch {
+    return NextResponse.json({ error: "Gagal generate plan" }, { status: 500 });
+  }
+}
