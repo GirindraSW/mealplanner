@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Loader2, ChevronRight, ArrowLeftRight } from "lucide-react";
+import { X, Loader2, ChevronRight, ArrowLeftRight, FileDown } from "lucide-react";
 
 type Meal = {
   name: string;
@@ -93,14 +93,111 @@ function TagInput({
 function MealPlanResult({
   plan,
   onReset,
+  goals,
+  allergies,
+  preferences,
 }: {
   plan: MealPlan;
   onReset: () => void;
+  goals: string;
+  allergies: string[];
+  preferences: string[];
 }) {
   const [expandedDay, setExpandedDay] = useState<number | null>(0);
   const [days, setDays] = useState(plan.days);
   const [swapFrom, setSwapFrom] = useState<number | null>(null);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const { nutritionSummary, groceryList } = plan;
+
+  const toggleItem = (key: string) => {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleExportPDF = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const allDays = days
+      .map(
+        (d) => `
+        <div class="day">
+          <h3>${d.day}</h3>
+          <table>
+            <tr><td class="label">Sarapan</td><td>${d.meals.breakfast.name}</td><td class="kcal">${d.meals.breakfast.calories} kcal</td></tr>
+            <tr><td class="label">Makan Siang</td><td>${d.meals.lunch.name}</td><td class="kcal">${d.meals.lunch.calories} kcal</td></tr>
+            <tr><td class="label">Makan Malam</td><td>${d.meals.dinner.name}</td><td class="kcal">${d.meals.dinner.calories} kcal</td></tr>
+            ${d.meals.snacks.map((s) => `<tr><td class="label">Snack</td><td>${s.name}</td><td class="kcal">${s.calories} kcal</td></tr>`).join("")}
+          </table>
+        </div>`
+      )
+      .join("");
+
+    const grocery = groceryList
+      .map(
+        (cat) => `
+        <div class="grocery-cat">
+          <h4>${cat.category}</h4>
+          <ul>${cat.items.map((item) => `<li>${item}</li>`).join("")}</ul>
+        </div>`
+      )
+      .join("");
+
+    win.document.write(`<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="UTF-8"/>
+<title>Meal Plan 7 Hari</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 32px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: #555; margin-bottom: 24px; font-size: 11px; }
+  .section-title { font-size: 15px; font-weight: bold; margin: 24px 0 10px; border-bottom: 2px solid #111; padding-bottom: 4px; }
+  .nutrition { display: flex; gap: 12px; margin-bottom: 8px; }
+  .nutrition-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 16px; text-align: center; flex: 1; }
+  .nutrition-box .val { font-size: 18px; font-weight: bold; color: #16a34a; }
+  .nutrition-box .unit { font-size: 10px; color: #888; }
+  .nutrition-box .lbl { font-size: 11px; margin-top: 2px; }
+  .day { margin-bottom: 14px; page-break-inside: avoid; }
+  .day h3 { font-size: 13px; font-weight: bold; background: #f3f4f6; padding: 5px 8px; border-radius: 4px; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  td.label { color: #666; font-size: 11px; width: 90px; }
+  td.kcal { text-align: right; color: #888; font-size: 11px; white-space: nowrap; }
+  .grocery { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grocery-cat h4 { font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+  .grocery-cat ul { list-style: none; }
+  .grocery-cat li { padding: 3px 0; font-size: 11px; color: #444; display: flex; align-items: center; gap: 6px; }
+  .grocery-cat li::before { content: "☐"; font-size: 13px; }
+  @media print { body { padding: 16px; } }
+</style>
+</head><body>
+<h1>Meal Plan 7 Hari</h1>
+<p class="subtitle">Dicetak pada ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+
+<div class="section-title">Ringkasan Nutrisi Harian</div>
+<div class="nutrition">
+  <div class="nutrition-box"><div class="val">${nutritionSummary.calories}</div><div class="unit">kcal</div><div class="lbl">Kalori</div></div>
+  <div class="nutrition-box"><div class="val">${nutritionSummary.protein}</div><div class="unit">g</div><div class="lbl">Protein</div></div>
+  <div class="nutrition-box"><div class="val">${nutritionSummary.carbs}</div><div class="unit">g</div><div class="lbl">Karbohidrat</div></div>
+  <div class="nutrition-box"><div class="val">${nutritionSummary.fats}</div><div class="unit">g</div><div class="lbl">Lemak</div></div>
+</div>
+
+<div class="section-title">Jadwal Makan</div>
+${allDays}
+
+<div class="section-title">Daftar Belanja</div>
+<div class="grocery">${grocery}</div>
+</body></html>`);
+
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
 
   const handleSwapClick = (e: React.MouseEvent, i: number) => {
     e.stopPropagation();
@@ -124,6 +221,36 @@ function MealPlanResult({
 
   return (
     <div className="space-y-6">
+      {/* Input Review */}
+      <Card className="border-dashed">
+        <CardContent className="pt-4 pb-4 space-y-2">
+          <div className="flex gap-2">
+            <span className="text-xs text-muted-foreground w-20 shrink-0 pt-0.5">Tujuan</span>
+            <p className="text-sm">{goals}</p>
+          </div>
+          {allergies.length > 0 && (
+            <div className="flex gap-2 items-start">
+              <span className="text-xs text-muted-foreground w-20 shrink-0 pt-0.5">Alergi</span>
+              <div className="flex flex-wrap gap-1">
+                {allergies.map((a) => (
+                  <Badge key={a} variant="destructive" className="text-xs font-normal">{a}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {preferences.length > 0 && (
+            <div className="flex gap-2 items-start">
+              <span className="text-xs text-muted-foreground w-20 shrink-0 pt-0.5">Preferensi</span>
+              <div className="flex flex-wrap gap-1">
+                {preferences.map((p) => (
+                  <Badge key={p} variant="secondary" className="text-xs font-normal">{p}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Nutrition Summary */}
       <Card>
         <CardHeader>
@@ -245,7 +372,12 @@ function MealPlanResult({
       {/* Grocery List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Daftar Belanja</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Daftar Belanja</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              {checkedItems.size}/{groceryList.reduce((acc, c) => acc + c.items.length, 0)} item
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-2 gap-6">
@@ -253,15 +385,31 @@ function MealPlanResult({
               <div key={category.category}>
                 <h4 className="font-medium text-sm mb-2">{category.category}</h4>
                 <ul className="space-y-1">
-                  {category.items.map((item) => (
-                    <li
-                      key={item}
-                      className="text-sm text-muted-foreground flex items-center gap-2"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      {item}
-                    </li>
-                  ))}
+                  {category.items.map((item) => {
+                    const key = `${category.category}-${item}`;
+                    const checked = checkedItems.has(key);
+                    return (
+                      <li key={item}>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleItem(key)}
+                            className="h-4 w-4 rounded border-input accent-primary shrink-0"
+                          />
+                          <span
+                            className={`text-sm transition-colors ${
+                              checked
+                                ? "line-through text-muted-foreground/50"
+                                : "text-muted-foreground group-hover:text-foreground"
+                            }`}
+                          >
+                            {item}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}
@@ -269,9 +417,15 @@ function MealPlanResult({
         </CardContent>
       </Card>
 
-      <Button variant="outline" onClick={onReset} className="w-full">
-        Buat Meal Plan Baru
-      </Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={onReset} className="flex-1">
+          Buat Meal Plan Baru
+        </Button>
+        <Button onClick={handleExportPDF} className="flex-1">
+          <FileDown className="mr-2 h-4 w-4" />
+          Export PDF
+        </Button>
+      </div>
     </div>
   );
 }
@@ -322,7 +476,7 @@ export default function MealPlanForm() {
   };
 
   if (status === "success" && result) {
-    return <MealPlanResult plan={result} onReset={handleReset} />;
+    return <MealPlanResult plan={result} onReset={handleReset} goals={goals} allergies={allergies} preferences={preferences} />;
   }
 
   return (

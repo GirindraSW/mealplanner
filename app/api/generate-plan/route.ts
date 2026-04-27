@@ -62,16 +62,39 @@ Kembalikan HANYA JSON valid dengan struktur:
       config: { responseMimeType: "application/json" },
     });
 
-    const text = response.text;
+    let text: string | undefined;
+    try {
+      text = response.text;
+    } catch (textErr) {
+      console.error("[generate-plan] response.text threw:", textErr);
+      return NextResponse.json(
+        { error: "AI memblokir konten atau respons tidak valid." },
+        { status: 502 }
+      );
+    }
+
     if (!text) {
+      console.error("[generate-plan] response.text is empty. candidates:", JSON.stringify(response.candidates));
       return NextResponse.json(
         { error: "AI tidak mengembalikan konten." },
         { status: 502 }
       );
     }
 
-    return NextResponse.json(JSON.parse(text));
-  } catch {
-    return NextResponse.json({ error: "Gagal generate plan" }, { status: 500 });
+    try {
+      return NextResponse.json(JSON.parse(text));
+    } catch {
+      console.error("[generate-plan] JSON.parse failed. raw text:", text.slice(0, 500));
+      return NextResponse.json(
+        { error: "AI mengembalikan format yang tidak valid." },
+        { status: 502 }
+      );
+    }
+  } catch (err) {
+    console.error("[generate-plan] unhandled error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Gagal generate plan" },
+      { status: 500 }
+    );
   }
 }
