@@ -13,10 +13,15 @@ export default function PlanPage() {
             <Leaf className="h-6 w-6 text-primary" />
             MealMind
           </Link>
-          <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2")}>
-            <ArrowLeft className="h-4 w-4" />
-            Kembali
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/saved" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Riwayat
+            </Link>
+            <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2")}>
+              <ArrowLeft className="h-4 w-4" />
+              Kembali
+            </Link>
+          </div>
         </div>
       </header>
 

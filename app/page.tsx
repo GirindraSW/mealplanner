@@ -15,9 +15,14 @@ export default function HomePage() {
             <Leaf className="h-6 w-6 text-primary" />
             MealMind
           </div>
-          <Link href="/plan" className={buttonVariants({ size: "sm" })}>
-            Buat Meal Plan
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/saved" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Riwayat
+            </Link>
+            <Link href="/plan" className={buttonVariants({ size: "sm" })}>
+              Buat Meal Plan
+            </Link>
+          </div>
         </div>
       </header>
 

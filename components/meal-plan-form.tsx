@@ -1,34 +1,13 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Loader2, ChevronRight, ArrowLeftRight, FileDown } from "lucide-react";
-
-type Meal = {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-};
-
-type MealPlan = {
-  days: Array<{
-    day: string;
-    meals: {
-      breakfast: Meal;
-      lunch: Meal;
-      dinner: Meal;
-      snacks: Meal[];
-    };
-  }>;
-  groceryList: Array<{ category: string; items: string[] }>;
-  nutritionSummary: { calories: number; protein: number; carbs: number; fats: number };
-};
+import { X, Loader2, ChevronRight, ArrowLeftRight, FileDown, Bookmark, BookmarkCheck } from "lucide-react";
+import type { MealPlan } from "@/lib/types";
 
 function TagInput({
   label,
@@ -90,24 +69,69 @@ function TagInput({
   );
 }
 
-function MealPlanResult({
+export function MealPlanResult({
   plan,
   onReset,
   goals,
   allergies,
   preferences,
+  initialPlanId,
+  initialCheckedItems,
 }: {
   plan: MealPlan;
-  onReset: () => void;
+  onReset?: () => void;
   goals: string;
   allergies: string[];
   preferences: string[];
+  initialPlanId?: string;
+  initialCheckedItems?: string[];
 }) {
   const [expandedDay, setExpandedDay] = useState<number | null>(0);
   const [days, setDays] = useState(plan.days);
   const [swapFrom, setSwapFrom] = useState<number | null>(null);
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(
+    new Set(initialCheckedItems ?? [])
+  );
+  const [savedId, setSavedId] = useState<string | null>(initialPlanId ?? null);
+  const [isSaving, setIsSaving] = useState(false);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { nutritionSummary, groceryList } = plan;
+
+  useEffect(() => {
+    if (!savedId) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      fetch(`/api/meal-plans/${savedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checked_items: Array.from(checkedItems) }),
+      });
+    }, 800);
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
+  }, [checkedItems, savedId]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/meal-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goals,
+          allergies,
+          preferences,
+          plan: { days, groceryList, nutritionSummary },
+          checked_items: Array.from(checkedItems),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) setSavedId(data.id);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const toggleItem = (key: string) => {
     setCheckedItems((prev) => {
@@ -118,6 +142,7 @@ function MealPlanResult({
     });
   };
 
+  // EXPORT PDF
   const handleExportPDF = () => {
     const win = window.open("", "_blank");
     if (!win) return;
@@ -199,10 +224,9 @@ ${allDays}
     setTimeout(() => win.print(), 300);
   };
 
+  // Swap Meal
   const handleSwapClick = (e: React.MouseEvent, i: number) => {
     e.stopPropagation();
-
-    // swap content day to another day
     if (swapFrom === null) {
       setSwapFrom(i);
     } else if (swapFrom === i) {
@@ -280,7 +304,8 @@ ${allDays}
           <h3 className="font-semibold text-lg">Meal Plan 7 Hari</h3>
           {swapFrom !== null && (
             <p className="text-xs text-muted-foreground">
-              Pilih hari tujuan untuk menukar dengan <span className="font-medium text-foreground">{days[swapFrom].day}</span>
+              Pilih hari tujuan untuk menukar dengan{" "}
+              <span className="font-medium text-foreground">{days[swapFrom].day}</span>
             </p>
           )}
         </div>
@@ -417,10 +442,33 @@ ${allDays}
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={onReset} className="flex-1">
-          Buat Meal Plan Baru
-        </Button>
+      {/* Actions */}
+      <div className="flex flex-wrap gap-3">
+        {onReset && (
+          <Button variant="outline" onClick={onReset} className="flex-1">
+            Buat Meal Plan Baru
+          </Button>
+        )}
+        {savedId ? (
+          <Button variant="outline" disabled className="flex-1 text-primary border-primary/30">
+            <BookmarkCheck className="mr-2 h-4 w-4" />
+            Tersimpan
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={handleSave} disabled={isSaving} className="flex-1">
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <Bookmark className="mr-2 h-4 w-4" />
+                Simpan Plan
+              </>
+            )}
+          </Button>
+        )}
         <Button onClick={handleExportPDF} className="flex-1">
           <FileDown className="mr-2 h-4 w-4" />
           Export PDF
@@ -476,7 +524,15 @@ export default function MealPlanForm() {
   };
 
   if (status === "success" && result) {
-    return <MealPlanResult plan={result} onReset={handleReset} goals={goals} allergies={allergies} preferences={preferences} />;
+    return (
+      <MealPlanResult
+        plan={result}
+        onReset={handleReset}
+        goals={goals}
+        allergies={allergies}
+        preferences={preferences}
+      />
+    );
   }
 
   return (
