@@ -1,36 +1,215 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MealMind - AI-Powered Meal Planner
+
+MealMind is an AI-powered meal planning web application that helps users generate a personalized 7-day meal plan based on their goals, food preferences, and allergies. The application also provides a grocery checklist and saves generated meal plans for later access.
+
+## Live Demo
+
+https://mealplanner-five-delta.vercel.app/
+
+## Repository
+
+https://github.com/GirindraSW/mealplanner.git
+
+## Features
+
+- Generate a personalized 7-day meal plan using AI
+- Input user goals, allergies, and food preferences
+- View generated meal plans in a structured format
+- Save generated meal plans to Supabase
+- Access meal plan history
+- Generate grocery list based on the meal plan
+- Export meal plan or grocery checklist to PDF
+- Responsive web interface
+
+## Tech Stack
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Supabase
+- Gemini API
+- Vercel
+
+## Branching Strategy
+
+This project uses a feature branch workflow to keep the `main` branch stable.
+
+### Main Branch
+
+- `main`: Stores the latest stable version of the application.
+
+### Feature Branches
+
+- `feat/gemini-api-prompt`: Implements Gemini API integration and prompt handling.
+- `feat/pdf-export-grocery-checklist`: Adds PDF export and grocery checklist features.
+- `feat/save-to-supabase`: Saves generated meal plans to Supabase.
+- `feat/swapmeal-grocerylist-categorized`: Adds meal day swapping, grocery list categorization, and UI components.
+
+## Commit Message Convention
+
+This project uses a simple Conventional Commit style to make the commit history easier to understand.
+
+Examples:
+
+```bash
+feat: gemini API + promt
+feat: PDF export, grocery checklist, input review
+feat: swap meal plan days, grocery list & categorization, add shadcn components
+feat: with history page, save each generated plane to supabase
+```
+
+Recommended format:
+
+```bash
+<type>: <short description>
+```
+
+Common types:
+
+- `feat`: Adds a new feature
+- `fix`: Fixes a bug
+- `docs`: Updates documentation
+- `style`: Changes formatting or styling
+- `refactor`: Improves code structure without changing functionality
+- `test`: Adds or updates tests
+- `chore`: Updates configuration, dependencies, or maintenance tasks
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+Make sure you have the following installed:
+
+- Node.js
+- npm, yarn, pnpm, or bun
+- Git
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/GirindraSW/mealplanner.git
+```
+
+Move into the project directory:
+
+```bash
+cd mealplanner
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+### Environment Variables
+
+Create a `.env.local` file in the root project directory.
+
+Example:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Do not commit `.env.local` or any secret keys to GitHub.
+
+### Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the application in your browser:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Build
 
-## Learn More
+To build the application for production:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To start the production build locally:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm start
+```
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The application is deployed on Vercel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Production URL:
+
+https://mealplanner-five-delta.vercel.app/
+
+## Git Workflow
+
+Recommended workflow for future development:
+
+1. Update the local `main` branch.
+
+```bash
+git checkout main
+git pull origin main
+```
+
+2. Create a new feature branch.
+
+```bash
+git checkout -b feat/feature-name
+```
+
+3. Make changes and commit them using a clear commit message.
+
+```bash
+git add .
+git commit -m "feat: add feature description"
+```
+
+4. Push the branch to GitHub.
+
+```bash
+git push -u origin feat/feature-name
+```
+
+5. Create a Pull Request to merge the feature branch into `main`.
+
+6. Review the changed files before merging.
+
+7. Delete the feature branch after it is merged.
+
+## Project Structure
+
+```text
+mealplanner/
+├── app/
+├── components/
+├── lib/
+├── public/
+├── README.md
+├── package.json
+├── next.config.ts
+└── tsconfig.json
+```
+
+## Notes
+
+This project was created as part of the DumbWays.id learning program. The current repository already uses multiple feature branches and a deployed production version. Pull Request usage is recommended for future improvements to make the workflow more structured and easier to review.
+
+## Author
+
+Girindra Sulistiyo Wardoyo
+
+## Institution
+
+DumbWays.id
